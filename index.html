@@ -1,80 +1,64 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Galleria Fotografica</title>
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #0e0e0e;
-      color: #fff;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 25px;
-      font-weight: 500;
-    }
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-      justify-items: center;
-    }
-    .gallery img {
-      width: 100%;
-      max-width: 420px;
-      height: auto;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.8);
-      transition: transform 0.3s ease;
-    }
-    .gallery img:hover {
-      transform: scale(1.05);
-    }
-    footer {
-      margin-top: 30px;
-      font-size: 0.9rem;
-      opacity: 0.7;
-    }
+    body{font-family:system-ui,sans-serif;background:#0e0e0e;color:#fff;margin:0;padding:20px;text-align:center}
+    h1{margin:0 0 24px}
+    .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;justify-items:center}
+    .card{width:100%;max-width:520px;background:#1a1a1a;border-radius:12px;padding:8px;box-shadow:0 0 10px rgba(0,0,0,.6)}
+    .card img{width:100%;height:auto;border-radius:8px;display:block}
+    .name{margin:8px 0 4px;font-size:.95rem;opacity:.8;word-break:break-all}
+    .err{color:#f66;font-size:.9rem}
+    footer{margin-top:28px;font-size:.9rem;opacity:.7}
   </style>
 </head>
 <body>
   <h1>Galleria Fotografica</h1>
-  <div class="gallery" id="gallery"></div>
-
-  <footer>
-    © 2025 dittutounprompt-maker — tutte le immagini
-  </footer>
+  <div id="gallery" class="gallery"></div>
+  <div id="error" class="err"></div>
+  <footer>© 2025 dittutounprompt-maker — tutte le immagini</footer>
 
   <script>
-    // Percorso pubblico corretto
-    const basePath = "https://dituttounprompt-maker.github.io/foto/foto/";
+    const owner = "dituttounprompt-maker";
+    const repo  = "foto";
+    const path  = "foto"; // cartella che contiene le immagini
+    const exts  = new Set([".jpg",".jpeg",".png",".webp",".avif",".gif"]);
 
-    // Elenco automatico dei file caricati
-    const images = [
-      "branzino.jpg", "branzino2.jpg",
-      "cernia.png", "cernia2.jpg",
-      "gamberorosso.jpg",
-      "granchi.jpg", "granchi2.png", "granchi3.png",
-      "granseola2.jpg",
-      "piovra.jpg",
-      "ranapescatrice.png",
-      "sanpietro.png",
-      "scampi.jpg", "scampi2.png",
-      "scorfano.png", "scorfano2.webp", "scorfano3.png",
-      "vongole.png", "vongole2.jpg"
-    ];
+    async function load() {
+      try {
+        const api = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+        const res = await fetch(api);
+        if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+        const items = await res.json();
 
-    const container = document.getElementById("gallery");
-    images.forEach(file => {
-      const img = document.createElement("img");
-      img.src = basePath + file;
-      img.alt = file.replace(/\.[^/.]+$/, "");
-      container.appendChild(img);
-    });
+        const files = items
+          .filter(it => it.type === "file" && exts.has(it.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? ""))
+          .sort((a,b) => a.name.localeCompare(b.name, 'it'));
+
+        const g = document.getElementById("gallery");
+        files.forEach(f => {
+          const card = document.createElement("div");
+          card.className = "card";
+          const img = document.createElement("img");
+          img.loading = "lazy";
+          img.alt = f.name.replace(/\.[^.]+$/,"");
+          img.src = f.download_url; // URL corretto fornito da GitHub
+          img.onerror = () => { img.alt = img.alt + " (errore)"; };
+          const name = document.createElement("div");
+          name.className = "name";
+          name.textContent = img.alt;
+          card.appendChild(img);
+          card.appendChild(name);
+          g.appendChild(card);
+        });
+      } catch (e) {
+        document.getElementById("error").textContent = "Errore nel caricamento: " + e.message;
+      }
+    }
+    load();
   </script>
 </body>
 </html>
